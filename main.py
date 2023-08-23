@@ -40,7 +40,7 @@ import os
 # display = ssd1306.SSD1306_I2C(128, 64, i2c)
 
 # Easy To Remember variables
-Btn=Pin(14, Pin.IN, Pin.PULL_UP)
+Btn=Pin(14, Pin.IN)
 MotUp=Pin(0, Pin.OUT)
 MotDn=Pin(2, Pin.OUT)
 OutA=Pin(12, Pin.OUT)
@@ -84,8 +84,8 @@ def web_page(filename):
 
 def main():
     # configure an irq callback
-    Btn.irq(trigger=Pin.IRQ_FALLING, handler=btn_off)
-    Btn.irq(trigger=Pin.IRQ_RISING, handler=btn_on)
+    Btn.irq(trigger=Pin.IRQ_LOW_LEVEL, handler=btn_off)
+    Btn.irq(trigger=Pin.IRQ_HIGH_LEVEL, handler=btn_on)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('', 80))
