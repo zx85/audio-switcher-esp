@@ -34,6 +34,7 @@ import ssd1306
 import network
 import sys  
 import os
+import re
 
 # Initialise the screen using default address 0x3C
 # i2c = I2C(sda=Pin(4), scl=Pin(5 ))
@@ -41,7 +42,7 @@ import os
 
 # Easy To Remember variables
 Btn=Pin(14, Pin.IN)
-MotUp=Pin(0, Pin.OUT)
+# MotUp=Pin(0, Pin.OUT) GPIO 0 (D3) is flash pin - we can't use that.
 MotDn=Pin(2, Pin.OUT)
 OutA=Pin(12, Pin.OUT)
 OutB=Pin(13, Pin.OUT)
@@ -84,8 +85,13 @@ def web_page(filename):
 
 def main():
     # configure an irq callback
-    Btn.irq(trigger=Pin.IRQ_LOW_LEVEL, handler=btn_off)
-    Btn.irq(trigger=Pin.IRQ_HIGH_LEVEL, handler=btn_on)
+    Btn.irq(trigger=Pin.IRQ_FALLING, handler=btn_off)
+    Btn.irq(trigger=Pin.IRQ_RISING, handler=btn_on)
+
+# Set output ports to 0
+    OutA.value(0)
+    OutB.value(0)
+    OutC.value(0)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('', 80))
@@ -102,11 +108,20 @@ def main():
         if uri=="":
             uri="index.html"
         content,responsecode = web_page(uri)
+        if re.search("^[123456]$",uri):
+            binary=list("{0:03b}".format(int(uri)-1))
+            print(binary)
+            OutA.value(int(binary[0]))
+            OutB.value(int(binary[1]))
+            OutC.value(int(binary[2]))
         conn.send('HTTP/1.1 '+responsecode+'\n')
         conn.send('Content-Type: '+content_type(uri)+'\n')
         conn.send('Connection: close\n\n')
         conn.sendall(content)
         conn.close()
+
+# Do something with uasync to get the buttons pressed and the switches switched?
+# https://github.com/peterhinch/micropython-async/blob/master/v3/docs/TUTORIAL.md
 
 if __name__ == "__main__":
 #    try:
