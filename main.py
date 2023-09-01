@@ -127,11 +127,10 @@ async def main():
         if btn_press:
             if long_press:
                 print("LONG")
+# Do mute-y business
             else:
                 print("SHORT")
-
-# Do something with uasync to get the buttons pressed and the switches switched?
-# https://github.com/peterhinch/micropython-async/blob/master/v3/docs/TUTORIAL.md
+# increment the doings
 
 if __name__ == "__main__":
 #    try:
