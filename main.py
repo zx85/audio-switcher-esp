@@ -130,6 +130,9 @@ async def main():
             else:
                 print("SHORT")
 
+# Do something with uasync to get the buttons pressed and the switches switched?
+# https://github.com/peterhinch/micropython-async/blob/master/v3/docs/TUTORIAL.md
+
 if __name__ == "__main__":
 #    try:
 # Start event loop and run entry point coroutine
