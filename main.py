@@ -1,54 +1,19 @@
-# main.py -- put your code here!
-# Basic functions
-# Connect to wifi
-# Run a webserver (not enough memory to run websockets)
-# Display the current input on the screen
-# If a button is pressed:
-# - short button press mute
-# - long button press go into input switching
-# - hold the button to slowly go through the inputs
-# - fast press the button to quickly go through the inptus
-# - update the display
-# If the request comes in from the websocket:
-# - change input or mute or move the volume pot (future development)
-# - update the display
-#
-# PINS
-# Phys Pin In/Out Function
-# D1   5   OUT    SCL - TFT Screen
-# D2   4   OUT    SDA - TFT Screen
-##################################
-# NOT D3   0   OUT    Motor + - this enables flash writing
-# D4   2   OUT    Motor -     - so going to have to rethink this
-##################################
-# D5   14  IN     Button (PullUp)
-# D6   12  OUT    Input Selector A
-# D7   13  OUT    Input Selector B
-# D8   15  OUT    Input Selector C
-
-# References
-# https://www.upesy.com/blogs/tutorials/hardware-interrupts-rpi-pico-on-micropython#
-#
-# Webserver - https://github.com/miguelgrinberg/microdot - TODO
-# Async =  https://www.digikey.co.uk/en/maker/projects/getting-started-with-asyncio-in-micropython-raspberry-pi-pico/110b4243a2f544b6af60411a85f0437c
-# Important imports
 import time
+import network
 from machine import Pin, I2C
 import ssd1306
-import network
-import sys  
+import network 
 import os
 import uasyncio
 import usocket
 import utime
-from uselect import select
+from ssd1306_setup import WIDTH, HEIGHT, setup
+from writer import Writer
+import futuramc32
+import arial8
+import gc
+gc.collect()
 
-# Initialise the screen using default address 0x3C
-# i2c = I2C(sda=Pin(4), scl=Pin(5 ))
-# display = ssd1306.SSD1306_I2C(128, 64, i2c)
-
-# Easy To Remember variables
-# Going to pull up so it triggers on LOW
 Btn=Pin(14, Pin.IN, Pin.PULL_UP)
 # Going to have to rethink the motors because D3 can't be used
 # MotUp=Pin(0, Pin.OUT)
@@ -64,28 +29,41 @@ def file_exists(filename):
     except OSError:
         return False
 
-def content_type(uri):
-    this_type='text/html'
-    if "." in uri:
-        suffix=uri.split(".")[1]
-        print("Suffix is: "+suffix)
-        if suffix=='js':
-            this_type='text/javascript'
-        if suffix=='css':
-            this_type='text/css'
-    return this_type
 
-def web_page(filename):
-    content=""
-    if file_exists("web/"+filename):
-        response="200 OK"
-        f=open("web/"+filename)
-        for line in f:
-            content=content+line
+def switch_input(out_val):
+    bin_out_val='{:03b}'.format(out_val)
+    print("Binary value is: %s - split to %i - %i - %i" % (bin_out_val, int(bin_out_val[0]), int(bin_out_val[1]), int(bin_out_val[2])))
+#    print("Binary value is: %s" % bin_out_val)
+    OutA.value(int(bin_out_val[0]))
+    OutB.value(int(bin_out_val[1]))
+    OutC.value(int(bin_out_val[2]))
+
+def write_display(ssd,wri32,wri6,rhs,val):
+    inputs=["PHONO","CD","TV","BLU-RAY","MIXER","AUX","MUTE"]
+    string_length=wri32.stringlen(inputs[val])
+    xpos=int((rhs-string_length)/2)
+    ssd.fill(0)
+    display_wifi(ssd,wri6,rhs)
+    wri32.set_textpos(ssd, 16, xpos)
+    wri32.printstring(inputs[val])
+    if val!=6:
+        wri6.set_textpos(ssd, 50, 60)
+        wri6.printstring(str(val+1))
+    ssd.show()
+
+def display_wifi(ssd,wri6,rhs):
+    wlan = network.WLAN()
+    ipAddress,netMask,defaultGateway,DNS=wlan.ifconfig()
+    if ipAddress!="0.0.0.0":
+        wri6.set_textpos(ssd, 0, 0)
+        wri6.printstring(ipAddress)
+        ssd.line(rhs - 18, 0, rhs - 2, 0, 1)
+        ssd.line(rhs - 15, 3, rhs - 5, 3, 1)
+        ssd.line(rhs - 12, 6, rhs - 8, 6, 1)
+        ssd.line(rhs - 10, 9, rhs - 9, 9, 1)
     else:
-        response="404 not found"
-    return content,response
-
+        wri6.printsring("wifi disconnected")
+    ssd.show()
 
 # Coroutine: blink on a timer
 async def blink():
@@ -112,24 +90,47 @@ async def wait_button():
     return btn_press,long_press
 
 async def main():
+    gc.collect()
+    out_val=0
+    mute=False
 
-    addr = usocket.getaddrinfo('0.0.0.0', 80)[0][-1]
-    s = usocket.socket()
-    s.bind(addr)
-    s.listen(1)
+# initiate display nonsense
+    ssd = setup()  # Create a display instance
+    rhs = WIDTH -1
+    ssd.fill(0)     
+    wri6 = Writer(ssd, arial8)
+    wri32 = Writer(ssd, futuramc32)
+    wri6.set_textpos(ssd, 3, 0)
+    display_wifi(ssd,wri6,rhs)
 
     # Start coroutine as a task and immediately return
     uasyncio.create_task(blink())
-#    uasyncio.create_task(webserver(s))
+
+## Start as we mean to go on - input 1 (or 0)
+    print(str(out_val))
+    switch_input(out_val)
+    write_display(ssd,wri32,wri6,rhs,out_val)
+
     while True:
+        gc.collect()
 #        print("waiting for the button then")
         btn_press,long_press=await wait_button()
         if btn_press:
-            if long_press:
-                print("LONG")
+            if long_press and not mute:
 # Do mute-y business
+                switch_input(6)
+                write_display(ssd,wri32,wri6,rhs,6)
+                print("long press - muting")
+                mute=True
             else:
-                print("SHORT")
+# increment input
+                if mute:
+                    mute=False
+                else:
+                    out_val=(out_val+1) % 6
+                switch_input(out_val)                    
+                write_display(ssd,wri32,wri6,rhs,out_val)
+                print("changing to input %i" % out_val)
 # increment the doings
 
 if __name__ == "__main__":

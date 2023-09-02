@@ -36,7 +36,6 @@ def connectToWiFi():
             wifiCount+=1 
         if ipAddress=="0.0.0.0":
             print("No WiFi connection - please check details in wifi.env")
-            sys.exit()
     else:
         print("You need to put some wifi details in wifi.env")
         sys.exit()
