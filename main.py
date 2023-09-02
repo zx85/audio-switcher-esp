@@ -1,11 +1,8 @@
-import time
 import network
-from machine import Pin, I2C
-import ssd1306
+from machine import Pin
 import network 
 import os
 import uasyncio
-import usocket
 import utime
 from ssd1306_setup import WIDTH, HEIGHT, setup
 from writer import Writer
@@ -28,7 +25,6 @@ def file_exists(filename):
         return True
     except OSError:
         return False
-
 
 def switch_input(out_val):
     bin_out_val='{:03b}'.format(out_val)
@@ -66,11 +62,11 @@ def display_wifi(ssd,wri6,rhs):
     ssd.show()
 
 # Coroutine: blink on a timer
-async def blink():
-    delay_ms = 500
-    while True:
-        MotDn(not MotDn())
-        await uasyncio.sleep_ms(delay_ms)
+#async def blink():
+#    delay_ms = 500
+#    while True:
+#        MotDn(not MotDn())
+#        await uasyncio.sleep_ms(delay_ms)
 
 # Coroutine: only return on button press
 async def wait_button():
@@ -89,10 +85,44 @@ async def wait_button():
     await uasyncio.sleep_ms(40)
     return btn_press,long_press
 
+async def serve_client(reader, writer):
+    html = """<!DOCTYPE html>
+<html>
+    <head> <title>Web Servery</title> </head>
+    <body> <h1>go</h1>
+        <p>%s</p>
+    </body>
+</html>
+"""
+    print("Client connected")
+    request_line = await reader.readline()
+    print("Request:", request_line)
+    # We are not interested in HTTP request headers, skip them
+    while await reader.readline() != b"\r\n":
+        pass
+
+    request = str(request_line)
+#    led_on = request.find('/light/on')
+#    led_off = request.find('/light/off')
+#    print( 'led on = ' + str(led_on))
+#    print( 'led off = ' + str(led_off))
+
+    response = html % "Pipes"
+    writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
+    writer.write(response)
+
+    await writer.drain()
+    await writer.wait_closed()
+    print("Client disconnected")
+
+
 async def main():
     gc.collect()
     out_val=0
     mute=False
+
+# Web server nonsense
+    uasyncio.create_task(uasyncio.start_server(serve_client, "0.0.0.0", 80))
 
 # initiate display nonsense
     ssd = setup()  # Create a display instance
@@ -104,7 +134,7 @@ async def main():
     display_wifi(ssd,wri6,rhs)
 
     # Start coroutine as a task and immediately return
-    uasyncio.create_task(blink())
+    # uasyncio.create_task(blink())
 
 ## Start as we mean to go on - input 1 (or 0)
     print(str(out_val))
