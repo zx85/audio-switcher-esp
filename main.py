@@ -1,13 +1,11 @@
-import network
 from machine import Pin
-import network 
 import os
 import uasyncio
 import utime
 from ssd1306_setup import WIDTH, HEIGHT, setup
 from writer import Writer
 import futuramc32
-import arial8
+import futurabk8
 import gc
 gc.collect()
 
@@ -30,35 +28,20 @@ def switch_input(out_val):
     bin_out_val='{:03b}'.format(out_val)
     print("Binary value is: %s - split to %i - %i - %i" % (bin_out_val, int(bin_out_val[0]), int(bin_out_val[1]), int(bin_out_val[2])))
 #    print("Binary value is: %s" % bin_out_val)
-    OutA.value(int(bin_out_val[0]))
+    OutA.value(int(bin_out_val[2]))
     OutB.value(int(bin_out_val[1]))
-    OutC.value(int(bin_out_val[2]))
+    OutC.value(int(bin_out_val[0]))
 
-def write_display(ssd,wri32,wri6,rhs,val):
-    inputs=["PHONO","CD","TV","BLU-RAY","MIXER","AUX","MUTE"]
+def write_display(ssd,wri32,wri8,rhs,val):
+    inputs=["VINYL","CD","TV","BLU-RAY","MIXER","AUX","MUTE"]
     string_length=wri32.stringlen(inputs[val])
     xpos=int((rhs-string_length)/2)
     ssd.fill(0)
-    display_wifi(ssd,wri6,rhs)
     wri32.set_textpos(ssd, 16, xpos)
     wri32.printstring(inputs[val])
     if val!=6:
-        wri6.set_textpos(ssd, 50, 60)
-        wri6.printstring(str(val+1))
-    ssd.show()
-
-def display_wifi(ssd,wri6,rhs):
-    wlan = network.WLAN()
-    ipAddress,netMask,defaultGateway,DNS=wlan.ifconfig()
-    if ipAddress!="0.0.0.0":
-        wri6.set_textpos(ssd, 0, 0)
-        wri6.printstring(ipAddress)
-        ssd.line(rhs - 18, 0, rhs - 2, 0, 1)
-        ssd.line(rhs - 15, 3, rhs - 5, 3, 1)
-        ssd.line(rhs - 12, 6, rhs - 8, 6, 1)
-        ssd.line(rhs - 10, 9, rhs - 9, 9, 1)
-    else:
-        wri6.printsring("wifi disconnected")
+        wri8.set_textpos(ssd, 1, 60)
+        wri8.printstring(str(val+1))
     ssd.show()
 
 # Coroutine: blink on a timer
@@ -85,61 +68,25 @@ async def wait_button():
     await uasyncio.sleep_ms(40)
     return btn_press,long_press
 
-async def serve_client(reader, writer):
-    html = """<!DOCTYPE html>
-<html>
-    <head> <title>Web Servery</title> </head>
-    <body> <h1>go</h1>
-        <p>%s</p>
-    </body>
-</html>
-"""
-    print("Client connected")
-    request_line = await reader.readline()
-    print("Request:", request_line)
-    # We are not interested in HTTP request headers, skip them
-    while await reader.readline() != b"\r\n":
-        pass
-
-    request = str(request_line)
-#    led_on = request.find('/light/on')
-#    led_off = request.find('/light/off')
-#    print( 'led on = ' + str(led_on))
-#    print( 'led off = ' + str(led_off))
-
-    response = html % "Pipes"
-    writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
-    writer.write(response)
-
-    await writer.drain()
-    await writer.wait_closed()
-    print("Client disconnected")
-
-
 async def main():
     gc.collect()
     out_val=0
     mute=False
 
-# Web server nonsense
-    uasyncio.create_task(uasyncio.start_server(serve_client, "0.0.0.0", 80))
-
 # initiate display nonsense
     ssd = setup()  # Create a display instance
     rhs = WIDTH -1
     ssd.fill(0)     
-    wri6 = Writer(ssd, arial8)
+    wri8 = Writer(ssd, futurabk8)
     wri32 = Writer(ssd, futuramc32)
-    wri6.set_textpos(ssd, 3, 0)
-    display_wifi(ssd,wri6,rhs)
 
     # Start coroutine as a task and immediately return
     # uasyncio.create_task(blink())
 
 ## Start as we mean to go on - input 1 (or 0)
-    print(str(out_val))
+    print("Starting off with input %i" % out_val)
     switch_input(out_val)
-    write_display(ssd,wri32,wri6,rhs,out_val)
+    write_display(ssd,wri32,wri8,rhs,out_val)
 
     while True:
         gc.collect()
@@ -149,7 +96,7 @@ async def main():
             if long_press and not mute:
 # Do mute-y business
                 switch_input(6)
-                write_display(ssd,wri32,wri6,rhs,6)
+                write_display(ssd,wri32,wri8,rhs,6)
                 print("long press - muting")
                 mute=True
             else:
@@ -159,7 +106,7 @@ async def main():
                 else:
                     out_val=(out_val+1) % 6
                 switch_input(out_val)                    
-                write_display(ssd,wri32,wri6,rhs,out_val)
+                write_display(ssd,wri32,wri8,rhs,out_val)
                 print("changing to input %i" % out_val)
 # increment the doings
 
