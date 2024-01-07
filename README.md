@@ -1,5 +1,5 @@
-# audio-switcher-esp8266
-A bit of micropython code to go with my Wemos D1mini audio switcher
+# audio-switcher-esp
+A bit of micropython code to go with my Wemos D1mini audio switcher. And maybe the S2mini.
 
 ## What is it?
 This is very much a work in progress and has two functions:
