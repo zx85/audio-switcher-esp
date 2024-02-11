@@ -17,6 +17,9 @@ MotDn = Pin(39, Pin.OUT)  # pin 15
 OutA = Pin(3, Pin.OUT, Pin.PULL_UP)  # pin 2
 OutB = Pin(5, Pin.OUT, Pin.PULL_UP)  # pin 3
 OutC = Pin(7, Pin.OUT, Pin.PULL_UP)  # pin 4
+# in ss1306_setup.py use
+# SCL pin 35
+# SDA pin 33
 
 
 def file_exists(filename):
@@ -52,14 +55,6 @@ def write_display(ssd, wri32, wri8, rhs, val):
     ssd.show()
 
 
-# Coroutine: blink on a timer
-# async def blink():
-#    delay_ms = 500
-#    while True:
-#        MotDn(not MotDn())
-#        await uasyncio.sleep_ms(delay_ms)
-
-
 # Coroutine: only return on button press
 async def wait_button():
     LONG_THRESHOLD = 500
@@ -90,9 +85,6 @@ async def main():
     wri8 = Writer(ssd, futurabk8)
     wri32 = Writer(ssd, futuramc32)
 
-    # Start coroutine as a task and immediately return
-    # uasyncio.create_task(blink())
-
     ## Start as we mean to go on - input 1 (or 0)
     print("Starting off with input %i" % out_val)
     switch_input(out_val)
@@ -100,7 +92,7 @@ async def main():
 
     while True:
         gc.collect()
-        #        print("waiting for the button then")
+        # print("waiting for the button then")
         btn_press, long_press = await wait_button()
         if btn_press:
             if long_press and not mute:
@@ -123,8 +115,4 @@ async def main():
 # increment the doings
 
 if __name__ == "__main__":
-    #    try:
-    # Start event loop and run entry point coroutine
     uasyncio.run(main())
-#    except KeyboardInterrupt:
-#        pass

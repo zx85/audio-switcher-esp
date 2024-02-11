@@ -35,6 +35,7 @@ from ssd1306 import SSD1306_SPI, SSD1306_I2C
 WIDTH = const(128)
 HEIGHT = const(64)
 
+
 def setup(use_spi=False, soft=True):
     if use_spi:
         # Pyb   SSD
@@ -45,11 +46,13 @@ def setup(use_spi=False, soft=True):
         # X3    Rst
         # X6    CLK
         # X8    DATA
-        pdc = machine.Pin('X1', machine.Pin.OUT_PP)
-        pcs = machine.Pin('X2', machine.Pin.OUT_PP)
-        prst = machine.Pin('X3', machine.Pin.OUT_PP)
+        pdc = machine.Pin("X1", machine.Pin.OUT_PP)
+        pcs = machine.Pin("X2", machine.Pin.OUT_PP)
+        prst = machine.Pin("X3", machine.Pin.OUT_PP)
         if soft:
-            spi = machine.SPI(sck=machine.Pin('X6'), mosi=machine.Pin('X8'), miso=machine.Pin('X7'))
+            spi = machine.SPI(
+                sck=machine.Pin("X6"), mosi=machine.Pin("X8"), miso=machine.Pin("X7")
+            )
         else:
             spi = machine.SPI(1)
         ssd = SSD1306_SPI(WIDTH, HEIGHT, spi, pdc, prst, pcs)
@@ -60,10 +63,10 @@ def setup(use_spi=False, soft=True):
         # Y9    CLK
         # Y10   DATA
         if soft:
-#            pscl = machine.Pin('Y9', machine.Pin.OPEN_DRAIN)
-#            psda = machine.Pin('Y10', machine.Pin.OPEN_DRAIN)
-            pscl = machine.Pin(5, machine.Pin.OPEN_DRAIN)
-            psda = machine.Pin(4, machine.Pin.OPEN_DRAIN)
+            #            pscl = machine.Pin('Y9', machine.Pin.OPEN_DRAIN)
+            #            psda = machine.Pin('Y10', machine.Pin.OPEN_DRAIN)
+            pscl = machine.Pin(35, machine.Pin.OPEN_DRAIN)
+            psda = machine.Pin(33, machine.Pin.OPEN_DRAIN)
             i2c = machine.I2C(scl=pscl, sda=psda)
         else:
             i2c = machine.I2C(2)
