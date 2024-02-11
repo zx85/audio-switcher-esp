@@ -11,9 +11,9 @@ import gc
 gc.collect()
 
 # Pins for ESP32-S2-MINI
-Btn = Pin(11, Pin.IN, Pin.PULL_UP)  # pin 6
-MotUp = Pin(37, Pin.OUT)  # pin 15
-MotDn = Pin(39, Pin.OUT)  # pin 16
+Btn = Pin(18, Pin.IN, Pin.PULL_UP)  # pin 12
+MotUp = Pin(37, Pin.OUT)  # pin 16
+MotDn = Pin(39, Pin.OUT)  # pin 15
 OutA = Pin(3, Pin.OUT, Pin.PULL_UP)  # pin 2
 OutB = Pin(5, Pin.OUT, Pin.PULL_UP)  # pin 3
 OutC = Pin(7, Pin.OUT, Pin.PULL_UP)  # pin 4
